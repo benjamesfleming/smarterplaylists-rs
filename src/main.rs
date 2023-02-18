@@ -5,11 +5,11 @@ use actix_web::{main, App, HttpServer};
 mod api {
 
     use crate::assets;
-    use actix_web::{get, Responder};
+    use actix_web::{get, web, Responder};
 
-    #[get("/")]
-    pub async fn index_get_handler() -> impl Responder {
-        assets::to_http_response("index.html")
+    #[get("/{path:.*}")]
+    pub async fn index_get_handler(path: web::Path<String>) -> impl Responder {
+        assets::to_http_response(&path)
     }
 }
 

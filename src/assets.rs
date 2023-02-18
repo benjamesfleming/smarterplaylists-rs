@@ -17,17 +17,33 @@ struct HtmlAssets;
 /// ```
 /// assets::to_http_response("index.html")
 /// ````
-pub fn to_http_response(path: &str) -> HttpResponse {
-    match HtmlAssets::get(path) {
-        Some(file) => {
-            // Guess the Content-Type using the filename
-            // n.b. fallback to "application/octet-stream" if unknown
-            let mime_type = mime_guess::from_path(path).first_or_octet_stream();
+pub fn to_http_response(path: &String) -> HttpResponse {
+    let mut try_files: [String; 3] = [
+        path.to_owned(),
+        path.to_owned() + ".html",
+        path.to_owned() + "/index.html",
+    ];
 
-            HttpResponse::Ok()
-                .content_type(mime_type.as_ref())
-                .body(file.data.into_owned())
-        }
-        None => HttpResponse::NotFound().body("404 Not Found"),
+    if path.is_empty() {
+        try_files[0] = "index.html".to_owned();
     }
+
+    for filename in try_files {
+        match HtmlAssets::get(&filename) {
+            Some(file) => {
+                // Guess the Content-Type using the filename
+                // n.b. fallback to "application/octet-stream" if unknown
+                let mime_type = mime_guess::from_path(filename).first_or_octet_stream();
+
+                return HttpResponse::Ok()
+                    .content_type(mime_type.as_ref())
+                    .body(file.data.into_owned());
+            }
+
+            // File not found - try the next possible filename
+            None => continue,
+        }
+    }
+
+    HttpResponse::NotFound().body("404 Not Found")
 }
