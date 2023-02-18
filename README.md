@@ -2,7 +2,7 @@
 
 Clone of the popular Spotify automatation tool [Smarter Playlists](http://smarterplaylists.playlistmachinery.com/), but with the backend written in Rust.
 
-**Why? -**
+**Why?**
 
 Why not? I started this clone to learn Rust, that is all.
 
@@ -25,15 +25,15 @@ services:
 
 **Build from source:**
 
-> Note: Please ensure you have an up-to-date version of Rust/Cargo installed
+> Note: Please ensure you have an up-to-date version of Rust installed
 
 ```bash
-git clone https://github.com/benjamesfleming/smarterplaylists-rs.git && cd smarterplaylists-rs
+git clone https://github.com/benjamesfleming/smarterplaylists-rs
 cd smarterplaylists-rs
 cargo install --locked --path .
 ````
 
-This will install the `smarterplaylists-rs` binary to `$HOME/.cargo/bin`
+This will install the `smarterplaylists-rs` binary to `$HOME/.cargo/bin`.
 
 ## License
 
