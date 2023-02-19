@@ -19,9 +19,9 @@ struct HtmlAssets;
 /// ````
 pub fn to_http_response(path: &String) -> HttpResponse {
     let mut try_files: [String; 3] = [
-        path.to_owned(),
-        path.to_owned() + ".html",
-        path.to_owned() + "/index.html",
+        path.to_owned(),                 // Attempt the given path
+        path.to_owned() + ".html",       // Maybe we forgot the .html suffix?
+        path.to_owned() + "/index.html", // Maybe we requested a directory, expecting the index.html file?
     ];
 
     if path.is_empty() {
