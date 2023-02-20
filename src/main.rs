@@ -1,5 +1,7 @@
 mod assets;
 
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_web::cookie::Key;
 use actix_web::{main, web, App, HttpServer};
 use sqlx::sqlite::SqlitePool;
 
@@ -8,7 +10,13 @@ mod api {
     use crate::db::models::*;
     use crate::{assets, ApplicationState};
 
-    use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
+    use actix_web::{get, web, HttpResponse, Responder};
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    pub struct AuthProviderCallbackParams {
+        code: String,
+    }
 
     #[get("/{path:.*}")]
     pub async fn index_get_handler(path: web::Path<String>) -> impl Responder {
@@ -26,6 +34,116 @@ mod api {
         web::Json(users.unwrap())
     }
 
+    // Auth Endpoints
+
+    macro_rules! err_unknown_provider {
+        ($provider: expr) => {
+            HttpResponse::BadRequest()
+                .body(format!("Unknown authentication provider: {}!", $provider))
+        };
+    }
+
+    #[get("/auth/{provider}/sso")]
+    pub async fn auth_provider_sso_redirect_handler(path: web::Path<String>) -> impl Responder {
+        match path.as_str() {
+            // Handle Spotify SSO redirect
+            "spotify" => HttpResponse::TemporaryRedirect()
+                .insert_header(("Location", crate::spotify::auth::authorize_uri()))
+                .finish(),
+
+            provider => err_unknown_provider!(provider),
+        }
+    }
+
+    #[get("/auth/{provider}/callback")]
+    pub async fn auth_provider_sso_callback_handler(
+        path: web::Path<String>,
+        params: web::Query<AuthProviderCallbackParams>,
+    ) -> impl Responder {
+        match path.as_str() {
+            // Handle Spotify SSO Callback
+            // TODO: Save credentials to the database, start the user session, and rediect back home
+            "spotify" => {
+                if let Ok(token) = crate::spotify::auth::request_token(&params.code) {
+                    HttpResponse::Ok()
+                        .body(format!("Access Token: {}", token.unwrap().access_token))
+                } else {
+                    HttpResponse::InternalServerError().finish()
+                }
+            }
+
+            provider => err_unknown_provider!(provider),
+        }
+    }
+}
+
+mod spotify {
+
+    use rspotify;
+    use rspotify::Token;
+    use std::env;
+
+    pub mod auth {
+
+        use rspotify::prelude::*;
+        use rspotify::Token;
+        use std::error::Error;
+
+        pub fn request_token(code: &str) -> Result<Option<Token>, Box<dyn Error>> {
+            let spotify = crate::spotify::init(None);
+
+            if let Ok(_) = spotify.request_token(&code) {
+                if let Ok(token) = spotify.get_token().lock() {
+                    Ok(token.clone())
+                } else {
+                    Err("".into())
+                }
+            } else {
+                Err("".into())
+            }
+        }
+
+        pub fn authorize_uri() -> String {
+            crate::spotify::init(None).get_authorize_url(true).unwrap()
+        }
+    }
+
+    pub fn init(token: Option<Token>) -> rspotify::AuthCodeSpotify {
+        // RSpotify Instance
+        // n.b. Pull OAuth client id/client secret from environment variables, panicing if not found
+        let spotify_creds = rspotify::Credentials::new(
+            &env::var("SPL_SPOTIFY_CLIENT_ID").expect("$SPL_SPOTIFY_CLIENT_ID is not set"),
+            &env::var("SPL_SPOTIFY_CLIENT_SECRET").expect("$SPL_SPOTIFY_CLIENT_SECRET is not set"),
+        );
+
+        let spotify_oauth = rspotify::OAuth {
+            // Scopes - Add scopes for reading and writing to a users playlists
+            // @ref https://developer.spotify.com/documentation/general/guides/authorization/scopes
+            scopes: rspotify::scopes!(
+                "playlist-read-private",   // Read access to user's private playlists.
+                "playlist-modify-private", // Write access to a user's private playlists.
+                "playlist-modify-public",  // Write access to a user's public playlists.
+                "user-follow-read", // Read access to the list of artists and other users that the user follows.
+                "user-read-email",  // Read access to user’s email address.
+                "user-library-read"  // Read access to a user's library.
+            ),
+
+            // Redirect URI
+            // TODO: Dynamicly build this based on production/public URL environment variable
+            redirect_uri: "http://127.0.0.1:8080/auth/spotify/callback".to_owned(),
+            ..Default::default()
+        };
+
+        let spotify = rspotify::AuthCodeSpotify::new(spotify_creds, spotify_oauth);
+
+        // If an access token was provided, then add it to the Spotify API client
+        // n.b. If not provided, the APIs that request authentication will fail
+        if let Some(token) = token {
+            *spotify.token.lock().unwrap() = Some(token)
+        }
+
+        spotify
+    }
 }
 
 mod db {
@@ -47,18 +165,35 @@ pub struct ApplicationState {
     db: SqlitePool,
 }
 
+use dotenv::dotenv;
+
 #[main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
+
+    // SQLite DB Connection Pool
     let pool = SqlitePool::connect("smarterplaylists-rs.db3")
         .await
         .unwrap();
 
+    // Application Session Management
+    // TODO: Pull session key from environment variable
+    let session_key = Key::generate();
+
+    // Application State
     let state = web::Data::new(ApplicationState { db: pool });
+
+    // --
 
     HttpServer::new(move || {
         App::new()
+            .wrap(SessionMiddleware::new(
+                CookieSessionStore::default(),
+                session_key.clone(),
+            ))
             .app_data(state.clone())
-            .service(api::v1_users_list_handler)
+            .service(api::auth_provider_sso_redirect_handler)
+            .service(api::auth_provider_sso_callback_handler)
             .service(api::index_get_handler)
     })
     .bind("127.0.0.1:8080")?

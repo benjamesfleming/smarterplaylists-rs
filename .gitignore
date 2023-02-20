@@ -1,2 +1,5 @@
 /target
 *.db3
+
+.env
+!.env.sample
