@@ -87,22 +87,33 @@ mod spotify {
 
         use rspotify::prelude::*;
         use rspotify::Token;
-        use std::error::Error;
 
-        pub fn request_token(code: &str) -> Result<Option<Token>, Box<dyn Error>> {
-            let spotify = crate::spotify::init(None);
+        // Request the access/refresh token using the given auth code.
+        // The return tokens should be persisted in the database
+        pub fn request_token(code: &str) -> Result<Option<Token>, String> {
+            let spotify = crate::spotify::init(None); // Init an unauthentication spotify client
 
+            // Request the access/refresh tokens.
+            // Note: This authenticates the current client instance, for future requests
             if let Ok(_) = spotify.request_token(&code) {
+                // Get the tokens from the client, and return the to the
+                // caller for storing in the db
                 if let Ok(token) = spotify.get_token().lock() {
                     Ok(token.clone())
+
+                // Error - failed to get token??? shouldn't happen
                 } else {
-                    Err("".into())
+                    Err("Failed to acquire token lock".into())
                 }
+
+            // Error - failed request
             } else {
-                Err("".into())
+                Err("Failed to request token".into())
             }
         }
 
+        // Build the authorize URL for the current client instance.
+        // Note: This uses the scopes and callback URL defined in the init helper
         pub fn authorize_uri() -> String {
             crate::spotify::init(None).get_authorize_url(true).unwrap()
         }
@@ -110,7 +121,7 @@ mod spotify {
 
     pub fn init(token: Option<Token>) -> rspotify::AuthCodeSpotify {
         // RSpotify Instance
-        // n.b. Pull OAuth client id/client secret from environment variables, panicing if not found
+        // Note: Pull OAuth client id/client secret from environment variables, panicing if not found
         let spotify_creds = rspotify::Credentials::new(
             &env::var("SPL_SPOTIFY_CLIENT_ID").expect("$SPL_SPOTIFY_CLIENT_ID is not set"),
             &env::var("SPL_SPOTIFY_CLIENT_SECRET").expect("$SPL_SPOTIFY_CLIENT_SECRET is not set"),
@@ -137,7 +148,7 @@ mod spotify {
         let spotify = rspotify::AuthCodeSpotify::new(spotify_creds, spotify_oauth);
 
         // If an access token was provided, then add it to the Spotify API client
-        // n.b. If not provided, the APIs that request authentication will fail
+        // Note: If not provided, the APIs that request authentication will fail
         if let Some(token) = token {
             *spotify.token.lock().unwrap() = Some(token)
         }
