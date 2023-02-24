@@ -5,5 +5,5 @@ pub trait Filter {
     fn apply(&self, source: TrackList) -> TrackList;
 }
 
-pub struct TrackDedupFilter;
-pub struct ArtistDedupFilter;
+// pub struct TrackDedupFilter;
+// pub struct ArtistDedupFilter;
