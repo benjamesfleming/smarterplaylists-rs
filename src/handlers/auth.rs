@@ -40,16 +40,12 @@ pub async fn auth_sso_callback_handler(
     app: web::Data<ApplicationState>,
     params: web::Query<AuthProviderCallbackParams>,
 ) -> Result<impl Responder, PublicError> {
-    let token = crate::spotify::auth::request_token(&params.code)
-        .map_err(|_| PublicError::InternalError)?
-        .ok_or(PublicError::InternalError)?;
-
-    let token_json = serde_json::to_string(&token).map_err(|_| PublicError::InternalError)?;
+    let token = crate::spotify::auth::request_token(&params.code)?;
+    let token_json = serde_json::to_string(&token)
+        .map_err(|err| format!("Failed to serialize token to JSON: {}", err))?;
 
     // Request the user data
-    let spotify_user = crate::spotify::init(Some(token))
-        .me()
-        .map_err(|_| PublicError::InternalError)?;
+    let spotify_user = crate::spotify::init(Some(token)).me()?;
 
     // Check if we already know that user
     // If not, insert the initial database record
@@ -85,9 +81,7 @@ pub async fn auth_sso_callback_handler(
     };
 
     // Save the user id into the session cookie
-    session
-        .insert("user_id", user_id)
-        .map_err(|_| PublicError::InternalError)?;
+    session.insert("user_id", user_id)?;
 
     // Redirect the user to the home page
     Ok(HttpResponse::TemporaryRedirect()

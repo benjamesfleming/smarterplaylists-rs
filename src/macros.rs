@@ -7,7 +7,7 @@ macro_rules! user_id {
     ($session: expr) => {
         $session
             .get::<i64>("user_id")
-            .map_err(|_| PublicError::InternalError)? // Internal Error - failed to get session value
+            .map_err(|err| PublicError::from(err))? // Internal Error - failed to get session value
             .ok_or(PublicError::Unauthorized)? // Session key empty, user is unauthenticated
     };
 }

@@ -48,7 +48,7 @@ pub mod auth {
 
     // Request the access/refresh token using the given auth code.
     // The return tokens should be persisted in the database
-    pub fn request_token(code: &str) -> Result<Option<Token>, String> {
+    pub fn request_token(code: &str) -> Result<Token, &'_ str> {
         let spotify = crate::spotify::init(None); // Init an unauthentication spotify client
 
         // Request the access/refresh tokens.
@@ -57,16 +57,16 @@ pub mod auth {
             // Get the tokens from the client, and return the to the
             // caller for storing in the db
             if let Ok(token) = spotify.get_token().lock() {
-                Ok(token.clone())
+                Ok(token.clone().unwrap())
 
             // Error - failed to get token??? shouldn't happen
             } else {
-                Err("Failed to acquire token lock".into())
+                Err("Failed to acquire token lock")
             }
 
         // Error - failed request
         } else {
-            Err("Failed to request token".into())
+            Err("Failed to request token")
         }
     }
 
