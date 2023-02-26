@@ -1,7 +1,7 @@
 use crate::{error::*, macros, models::*, ApplicationState};
 use actix_session::Session;
 use actix_web::{get, web, HttpResponse, Responder};
-use rspotify::prelude::*;
+use rspotify::{model::UserId, prelude::*};
 use serde::Deserialize;
 
 #[get("/auth/me")]
@@ -10,7 +10,7 @@ pub async fn auth_me_handler(
     app: web::Data<ApplicationState>,
 ) -> Result<impl Responder, PublicError> {
     let user_id = macros::user_id!(session);
-    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ?")
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE spotify_id = ?")
         .bind(user_id)
         .fetch_one(&app.db)
         .await?;
@@ -49,39 +49,37 @@ pub async fn auth_sso_callback_handler(
 
     // Check if we already know that user
     // If not, insert the initial database record
-    let query = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = ?")
-        .bind(&spotify_user.email)
+    let query = sqlx::query_as::<_, User>("SELECT * FROM users WHERE spotify_id = ?")
+        .bind(&spotify_user.id.to_string())
         .fetch_optional(&app.db)
         .await?;
 
-    let user_id: i64 = match query {
+    match query {
         // We do know this user, just replace the access token
         Some(user) => {
-            sqlx::query("UPDATE users SET spotify_access_token = ? WHERE id = ?")
+            sqlx::query("UPDATE users SET spotify_access_token = ? WHERE spotify_id = ?")
                 .bind(&token_json)
-                .bind(&user.id)
+                .bind(&user.spotify_id)
                 .execute(&app.db)
                 .await?;
-
-            user.id
         }
 
         // We don't know this user
         None => {
             sqlx::query(
-                "INSERT INTO users (spotify_username, spotify_email, spotify_access_token) VALUES (?, ?, ?)"
+                "INSERT INTO users (spotify_id, spotify_username, spotify_email, spotify_access_token) VALUES (?, ?, ?, ?)"
             )
+                .bind(&spotify_user.id.to_string())
                 .bind(&spotify_user.display_name)
                 .bind(&spotify_user.email)
                 .bind(&token_json)
                 .execute(&app.db)
-                .await?
-                .last_insert_rowid()
+                .await?;
         }
     };
 
     // Save the user id into the session cookie
-    session.insert("user_id", user_id)?;
+    session.insert("user_id", spotify_user.id.to_string())?;
 
     // Redirect the user to the home page
     Ok(HttpResponse::TemporaryRedirect()

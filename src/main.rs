@@ -8,7 +8,13 @@ mod routes;
 mod spotify;
 
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use actix_web::{cookie::Key, main, web, App, HttpServer};
+use actix_web::{
+    cookie::Key,
+    http::StatusCode,
+    main,
+    middleware::{ErrorHandlerResponse, ErrorHandlers},
+    web, App, HttpServer,
+};
 use dotenv::dotenv;
 use sqlx::sqlite::SqlitePool;
 
@@ -20,6 +26,10 @@ pub struct ApplicationState {
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
+    std::env::set_var("RUST_LOG", "info");
+    std::env::set_var("RUST_BACKTRACE", "0");
+    env_logger::init();
+
     // SQLite DB Connection Pool
     let pool = SqlitePool::connect("smarterplaylists-rs.db3")
         .await
@@ -27,7 +37,9 @@ async fn main() -> std::io::Result<()> {
 
     // Application Session Management
     // TODO: Pull session key from environment variable
-    let session_key = Key::generate();
+    let session_key = Key::from(
+        b"N4yGxwsXHqY0r2p5hLSmrwFdTEhY9KSwt4byWzFvuK25dNu/fs460VEOukuwoD5M5qvN94aDXtYolImdfCBETQ==",
+    );
 
     // Application State
     let state = web::Data::new(ApplicationState { db: pool });
@@ -40,10 +52,21 @@ async fn main() -> std::io::Result<()> {
                 CookieSessionStore::default(),
                 session_key.clone(),
             ))
+            .wrap(ErrorHandlers::new().handler(StatusCode::INTERNAL_SERVER_ERROR, error_logger))
             .app_data(state.clone())
             .service(routes::router())
     })
     .bind("127.0.0.1:8080")?
     .run()
     .await
+}
+
+//
+
+fn error_logger<B>(
+    res: actix_web::dev::ServiceResponse<B>,
+) -> actix_web::Result<actix_web::middleware::ErrorHandlerResponse<B>> {
+    log::error!("{:?}", res.response().error().unwrap());
+
+    Ok(ErrorHandlerResponse::Response(res.map_into_left_body()))
 }

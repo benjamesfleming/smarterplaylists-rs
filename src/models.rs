@@ -1,3 +1,4 @@
+use rspotify::model::UserId;
 use serde::{Deserialize, Serialize};
 
 /// User holds the details of an authenticated spotify user.
@@ -6,11 +7,21 @@ use serde::{Deserialize, Serialize};
 /// We impl a custom From/Into for the access token to allow for this behaviour.
 #[derive(sqlx::FromRow, Serialize, Deserialize)]
 pub struct User {
-    pub id: i64,
+    pub spotify_id: String,
     pub spotify_username: String,
     pub spotify_email: String,
     #[sqlx(default, try_from = "String")]
     pub spotify_access_token: Token,
+}
+
+impl User {
+    pub fn id(&self) -> UserId<'_> {
+        UserId::from_uri(self.spotify_id.as_str()).unwrap()
+    }
+
+    pub fn token(&self) -> Option<rspotify::Token> {
+        Some(self.spotify_access_token.0.to_owned().unwrap())
+    }
 }
 
 /// Token holds the spotify auth details

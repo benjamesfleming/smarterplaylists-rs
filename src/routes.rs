@@ -5,6 +5,7 @@ use std::io;
 pub fn router() -> Scope {
     web::scope("")
         // API Routes
+        .service(crate::handlers::api_spotify::api_v1_spotify_user_playlists)
         // Auth Routes
         .service(crate::handlers::auth::auth_me_handler)
         .service(crate::handlers::auth::auth_sso_redirect_handler)
