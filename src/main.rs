@@ -31,7 +31,14 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     // SQLite DB Connection Pool
-    let pool = SqlitePool::connect("smarterplaylists-rs.db3")
+    let pool = SqlitePool::connect("smarterplaylists-rs.db3?mode=rwc")
+        .await
+        .unwrap();
+
+    // Run SQLx migrations -
+    // These are all embeded into the binary at build time
+    sqlx::migrate!("./migrations")
+        .run(&pool)
         .await
         .unwrap();
 
