@@ -63,7 +63,7 @@ where
     // - The key exists in Redis
     if reset == false {
         let exists: bool = con.exists(key).await.map_err(Error::RedisCMDError)?;
-        if exists == false {
+        if exists == true {
             // Cache key found and not expired - pull value and deserialize
             // TODO: Do we need better handling for race-conditations here?
             let res: String = con.get(key).await.map_err(Error::RedisCMDError)?;
