@@ -3,6 +3,7 @@ use actix_web::{
     HttpResponse,
 };
 use derive_more::{Display, Error};
+use crate::cache;
 
 #[derive(Debug, Display, Error)]
 pub enum PublicError {
@@ -55,6 +56,8 @@ map_internal_error![
     actix_session::SessionInsertError,
     rspotify::ClientError,
     sqlx::Error,
+    serde_json::Error,
+    cache::Error,
     // Map string types to internal error
     // USAGE:
     //     call_will_fail().map_err(|_| "Oh no! This call has failed")?

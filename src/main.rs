@@ -1,4 +1,5 @@
 mod assets;
+mod cache;
 mod components;
 mod error;
 mod handlers;
@@ -15,32 +16,37 @@ use actix_web::{
     middleware::{ErrorHandlerResponse, ErrorHandlers},
     web, App, HttpServer,
 };
+use cache::RedisPool;
 use dotenv::dotenv;
 use sqlx::sqlite::SqlitePool;
 
 pub struct ApplicationState {
     db: SqlitePool,
+    cache: RedisPool
 }
 
 #[main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
-    std::env::set_var("RUST_LOG", "info");
+    std::env::set_var("RUST_LOG", "warn");
     std::env::set_var("RUST_BACKTRACE", "0");
     env_logger::init();
 
     // SQLite DB Connection Pool
-    let pool = SqlitePool::connect("smarterplaylists-rs.db3?mode=rwc")
+    let db_pool = SqlitePool::connect("smarterplaylists-rs.db3?mode=rwc")
         .await
         .unwrap();
 
     // Run SQLx migrations -
     // These are all embeded into the binary at build time
     sqlx::migrate!("./migrations")
-        .run(&pool)
+        .run(&db_pool)
         .await
         .unwrap();
+
+    // Redis Cache Pool
+    let cache_pool = cache::connect().await.unwrap();
 
     // Application Session Management
     // TODO: Pull session key from environment variable
@@ -49,7 +55,10 @@ async fn main() -> std::io::Result<()> {
     );
 
     // Application State
-    let state = web::Data::new(ApplicationState { db: pool });
+    let state = web::Data::new(ApplicationState { 
+        db: db_pool,
+        cache: cache_pool
+    });
 
     // --
 

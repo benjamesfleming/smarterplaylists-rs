@@ -1,7 +1,7 @@
 use crate::{error::*, macros, models::*, ApplicationState};
 use actix_session::Session;
 use actix_web::{get, web, HttpResponse, Responder};
-use rspotify::{model::UserId, prelude::*};
+use rspotify::{prelude::*};
 use serde::Deserialize;
 
 #[get("/auth/me")]
