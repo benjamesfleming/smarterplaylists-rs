@@ -1,11 +1,11 @@
 ///! The Controller takes the flow definetion as JSON, parses it, and runs the flow
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
     thread,
 };
+use uuid::Uuid;
 
 use crate::{components::TrackList, error::PublicError};
 
@@ -65,8 +65,10 @@ impl UserDefinedFlow {
             // E.g. Edge [A, B] becomes Constraint "A < B" and "B > A"
             for (lhs, rhs) in self.edges.iter() {
                 if rhs == id {
+                    #[rustfmt::skip]
                     constraints.push(Constraint { lhs, rhs, op: Op::Lt });
-                    constraints.push(Constraint { lhs: rhs, rhs: lhs, op: Op::Gt }); 
+                    #[rustfmt::skip]
+                    constraints.push(Constraint { lhs: rhs, rhs: lhs, op: Op::Gt });
                 }
             }
         }
@@ -75,7 +77,7 @@ impl UserDefinedFlow {
         // Reduce the domain using the AC-3 algorithm.
         // Build the inital agenda - We will work through the agenda step-by-step
         let mut agenda: Vec<&Constraint<&Uuid>> = constraints.iter().collect();
-        
+
         while let Some(constraint) = agenda.pop() {
             let rhs = domains.get(&constraint.rhs).unwrap().clone();
             let lhs = domains.get_mut(&constraint.lhs).unwrap();
@@ -83,10 +85,10 @@ impl UserDefinedFlow {
             // Keep track of whether the lhs domain has changed -
             // If it does change we need to update the agenda.
             let mut changed = false;
-            
+
             // Check for each LHS value, there is a RHS value that satifies the constraint.
-            // E.g. Given the domains (A = [1,2,3], B = [1,2,3]), verify that each value of A 
-            //      can satify the constraint "A < B". In this case the the domain of A would be 
+            // E.g. Given the domains (A = [1,2,3], B = [1,2,3]), verify that each value of A
+            //      can satify the constraint "A < B". In this case the the domain of A would be
             //      constrained to [2,3] because "A=1" cannot be less than any value for B.
             lhs.retain(|lhs_value| {
                 let mut satified = false;
@@ -110,7 +112,11 @@ impl UserDefinedFlow {
                 // Verify that the domain still has a valid option -
                 // If not then this problem is unsolvable.
                 if lhs.is_empty() {
-                    return Err(format!("Failed to find a valid constraint for node:{}", constraint.lhs).into());
+                    return Err(format!(
+                        "Failed to find a valid constraint for node:{}",
+                        constraint.lhs
+                    )
+                    .into());
                 }
 
                 let affected = constraints
@@ -122,7 +128,7 @@ impl UserDefinedFlow {
                         c.rhs == constraint.lhs && !agenda.contains(c)
                     })
                     .collect::<Vec<_>>();
-                
+
                 // Add the affected constaints to the agenda -
                 // These require further processing.
                 agenda.extend(affected);
@@ -135,14 +141,13 @@ impl UserDefinedFlow {
 
         // Resize the schedule vec with enough space for one node per batch -
         // In many cases this will be overprovisioned, therefore we need to clean up the empty batches at the end.
-        schedule
-            .resize_with(self.nodes.len(), || vec![]);
+        schedule.resize_with(self.nodes.len(), || vec![]);
 
         for (id, domain) in domains {
             // Use the first domain value that applies - TODO: Add backtracking???
             // n.b. Unwrap here is fine because we do `lhs.is_empty()` above.
             let batch_id = *domain.first().unwrap();
-            
+
             if let Some(batch) = schedule.get_mut(batch_id) {
                 batch.push(*id);
             }
@@ -198,10 +203,9 @@ impl UserDefinedFlow {
 
 #[cfg(test)]
 mod tests {
-    use std::{str::FromStr, collections::HashSet};
-
+    use super::{Schedule, UserDefinedFlow};
+    use std::{collections::HashSet, str::FromStr};
     use uuid::Uuid;
-    use super::{UserDefinedFlow, Schedule};
 
     const TEST_YAML: &str = "
 ---
@@ -251,30 +255,28 @@ edges:
         let mut schedule = flow.build_schedule().unwrap();
 
         assert_batches(
-            schedule, 
+            schedule,
             &[
                 "da0e029b-7a25-424e-b031-fc1271e38069, b38547f9-22cc-47ab-94bb-da695ee3ac4b",
                 "587d87da-0b5b-4b89-a41b-63414b93235c",
                 "377033c8-c36c-4f04-a716-5e1736f4dfdc",
                 "5d83eaac-546e-41f8-b584-9558c037a90c",
-                "f0cb5d21-abad-4d11-9dbf-12855a01c463"
-            ]
+                "f0cb5d21-abad-4d11-9dbf-12855a01c463",
+            ],
         );
     }
 
-    // 
+    //
 
     pub fn assert_batches(schedule: Schedule, expected: &[&str]) {
         for (i, batch) in schedule.iter().enumerate() {
             let expected_nodes: HashSet<Uuid> = expected[i]
                 .split(',')
-                .map(|id| {
-                    Uuid::from_str(id.trim()).unwrap()
-                })
+                .map(|id| Uuid::from_str(id.trim()).unwrap())
                 .collect();
-            
+
             let actual_nodes: HashSet<Uuid, _> = HashSet::from_iter(batch.iter().cloned());
-            
+
             assert_eq!(expected_nodes, actual_nodes);
         }
     }

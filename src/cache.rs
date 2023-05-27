@@ -1,7 +1,10 @@
 use derive_more::{Display, Error};
 use mobc::{Connection, Pool};
-use mobc_redis::{redis::{self, AsyncCommands}, RedisConnectionManager};
-use serde::{Serialize, de::DeserializeOwned};
+use mobc_redis::{
+    redis::{self, AsyncCommands},
+    RedisConnectionManager,
+};
+use serde::{de::DeserializeOwned, Serialize};
 use std::time::Duration;
 
 use crate::error::PublicError;
@@ -28,9 +31,9 @@ pub enum Error {
 
 pub async fn connect() -> Result<RedisPool, Error> {
     let client = redis::Client::open(REDIS_CON_STRING).map_err(Error::RedisClientError)?;
-    
+
     let manager = RedisConnectionManager::new(client);
-    
+
     let pool = Pool::builder()
         .get_timeout(Some(Duration::from_secs(CACHE_POOL_TIMEOUT_SECONDS)))
         .max_lifetime(Some(Duration::from_secs(CACHE_POOL_EXPIRE_SECONDS)))
@@ -50,7 +53,13 @@ async fn get_con(pool: &RedisPool) -> Result<RedisCon, Error> {
 
 // Get or create a cached value with a given TTL in seconds.
 // n.b. This only excutes the given closure when the value is not value, expired, or reset=true
-pub async fn get_or_create<T, C>(pool: &RedisPool, key: &str, ttl: usize, reset: bool, callback: C) -> Result<T, PublicError>
+pub async fn get_or_create<T, C>(
+    pool: &RedisPool,
+    key: &str,
+    ttl: usize,
+    reset: bool,
+    callback: C,
+) -> Result<T, PublicError>
 where
     T: Serialize + DeserializeOwned,
     C: Fn() -> Result<T, PublicError>,
@@ -58,7 +67,7 @@ where
     // Get a Redis connection from the pool
     let mut con: RedisCon = get_con(&pool).await?;
 
-    // Get value from cache, if - 
+    // Get value from cache, if -
     // - We are not force resetting the value, and
     // - The key exists in Redis
     if reset == false {
@@ -68,7 +77,7 @@ where
             // TODO: Do we need better handling for race-conditations here?
             let res: String = con.get(key).await.map_err(Error::RedisCMDError)?;
             let data: T = serde_json::from_str(&res).unwrap();
-    
+
             return Ok(data);
         }
     }
@@ -80,7 +89,9 @@ where
     let data: T = callback()?;
     let serialized: String = serde_json::to_string(&data)?;
 
-    con.set_ex(key, serialized, ttl).await.map_err(Error::RedisCMDError)?;
+    con.set_ex(key, serialized, ttl)
+        .await
+        .map_err(Error::RedisCMDError)?;
 
     Ok(data)
 }

@@ -1,9 +1,9 @@
+use crate::cache;
 use actix_web::{
     http::{header::ContentType, StatusCode},
     HttpResponse,
 };
 use derive_more::{Display, Error};
-use crate::cache;
 
 #[derive(Debug, Display, Error)]
 pub enum PublicError {

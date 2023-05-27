@@ -2,7 +2,7 @@ use actix_session::Session;
 use actix_web::{get, web, Responder};
 use rspotify::{model::SimplifiedPlaylist, prelude::*};
 
-use crate::{error::PublicError, macros, models::User, spotify, ApplicationState, cache};
+use crate::{cache, error::PublicError, macros, models::User, spotify, ApplicationState};
 
 #[get("/api/v1/spotify/user_playlists")]
 pub async fn api_v1_spotify_user_playlists(
@@ -22,7 +22,8 @@ pub async fn api_v1_spotify_user_playlists(
             playlists.push(plst?);
         }
         Ok(playlists)
-    }).await?;
+    })
+    .await?;
 
     Ok(web::Json(res))
 }

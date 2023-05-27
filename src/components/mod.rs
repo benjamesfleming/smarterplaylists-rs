@@ -15,7 +15,11 @@ use crate::error::PublicError;
 use self::sources::*;
 
 pub trait Component<T> {
-    fn execute(client: &Client, args: T, prev: Vec<TrackList>) -> Result<TrackList, rspotify::ClientError>;
+    fn execute(
+        client: &Client,
+        args: T,
+        prev: Vec<TrackList>,
+    ) -> Result<TrackList, rspotify::ClientError>;
 }
 
 // --
@@ -35,7 +39,8 @@ macro_rules! components {
     };
 }
 
-components! [
+#[rustfmt::skip::macros(components)]
+components![
     ("source:artist_top_tracks", ArtistTopTracks, ArtistTopTracksArgs),
     ("source:album", Album, AlbumArgs)
 ];

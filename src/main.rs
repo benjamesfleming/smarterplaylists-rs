@@ -1,7 +1,7 @@
 mod assets;
 mod cache;
-mod controller;
 mod components;
+mod controller;
 mod error;
 mod handlers;
 mod macros;
@@ -23,7 +23,7 @@ use sqlx::sqlite::SqlitePool;
 
 pub struct ApplicationState {
     db: SqlitePool,
-    cache: RedisPool
+    cache: RedisPool,
 }
 
 #[main]
@@ -41,10 +41,7 @@ async fn main() -> std::io::Result<()> {
 
     // Run SQLx migrations -
     // These are all embeded into the binary at build time
-    sqlx::migrate!("./migrations")
-        .run(&db_pool)
-        .await
-        .unwrap();
+    sqlx::migrate!("./migrations").run(&db_pool).await.unwrap();
 
     // Redis Cache Pool
     let cache_pool = cache::connect().await.unwrap();
@@ -56,9 +53,9 @@ async fn main() -> std::io::Result<()> {
     );
 
     // Application State
-    let state = web::Data::new(ApplicationState { 
+    let state = web::Data::new(ApplicationState {
         db: db_pool,
-        cache: cache_pool
+        cache: cache_pool,
     });
 
     // --
