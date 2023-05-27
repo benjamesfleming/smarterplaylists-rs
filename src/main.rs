@@ -1,5 +1,6 @@
 mod assets;
 mod cache;
+mod controller;
 mod components;
 mod error;
 mod handlers;
