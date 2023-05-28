@@ -1,5 +1,4 @@
-/// The TrackList is a collection of FullTracks. It is used
-/// as a return type for source components
+/// TrackList is a collection of FullTracks. It is used as a return type for source components.
 pub type TrackList = Vec<rspotify::model::FullTrack>;
 
 pub mod combiners;
@@ -8,27 +7,86 @@ pub mod filters;
 pub mod sources;
 
 use rspotify::AuthCodeSpotify as Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use self::sources::*;
 use crate::error::Result;
 
-pub trait Component<T> {
-    fn execute(client: &Client, args: T, prev: Vec<TrackList>) -> Result<TrackList>;
+/// NonExhaustive is a helper enum to allow us to Deserialze unknown components.
+/// Required as a workaround due to `#[serde(other)]` not working with tuple variants.
+///
+/// Ref: <https://github.com/serde-rs/serde/issues/1701#issuecomment-584677088>
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(untagged)]
+pub enum NonExhaustive<T> {
+    Known(T),
+    Unknown(serde_json::Value),
+}
+
+impl<T> NonExhaustive<T> {
+    pub fn unwrap(self) -> T {
+        match self {
+            NonExhaustive::Known(inner) => inner,
+            NonExhaustive::Unknown(_) => panic!("unknown component"),
+        }
+    }
+}
+
+/// The Executable Trait should be implemented by all components.
+///
+/// Each Executable component should take an arguments object, as well as a list of previous
+/// component outputs, and return a single [`TrackList`].
+pub trait Executable {
+    type Args;
+
+    fn execute(client: &Client, args: Self::Args, prev: Vec<TrackList>) -> Result<TrackList>;
 }
 
 // --
 
 macro_rules! components {
-    ( $(($a:literal, $b:ty, $c:ty)),* ) => {
-        // Execute a component by name -
-        // n.b This function takes a generic args value and will fail if it can't be deserilized into the correct type
-        pub fn execute(id: &str, client: &Client, args: serde_json::Value, prev: Vec<TrackList>) -> Result<TrackList> {
-            match id {
-                $(
-                    $a => <$b>::execute(client, <$c as Deserialize>::deserialize(args)?, prev).map_err(|_| "".into()),
-                )*
-                _ => Err(format!("invalid component type '{}' provided", id).into()),
+    ( $(( $a:literal, $b:ident )),* ) => {
+        /// The Component enum wraps all components with a tag-based deserializer.
+        ///
+        /// When being deserialized we look for an adjancent `component` tag, this tag allows
+        /// us to map the `parameters` into the correct component `Args`.
+        ///
+        /// **Example**
+        ///
+        /// ```rust
+        /// let yaml = r#"
+        ///   - component: "source:artist_top_tracks"
+        ///     parameters:
+        ///       id: "spotify:artist:6qqNVTkY8uBg9cP3Jd7DAH"
+        ///   # ...
+        /// "#;
+        ///
+        /// let components: Vec<Component> = serde_yaml::from_str(yaml);
+        /// ```
+        #[derive(Deserialize, Serialize, Clone, Debug)]
+        #[serde(tag = "component", content = "parameters")]
+        pub enum Component {
+            $(
+                // Map the component types to enum varients.
+                // E.g. ArtistTopTracks(ArtistTopTracks::Args)
+                #[serde(rename = $a)]
+                $b(<$b as Executable>::Args),
+            )*
+        }
+
+        impl Component {
+            /// Return the name of the component.
+            pub fn name(&self) -> &'static str {
+                match self {
+                    $(Component::$b(_) => $a,)*
+                }
+            }
+
+            /// Execute the component with the given arguments and previous component results.
+            pub fn execute(self, client: &Client, prev: Vec<TrackList>) -> Result<TrackList> {
+                match self {
+                    $(Component::$b(args) => <$b>::execute(client, args, prev),)*
+                }
             }
         }
     };
@@ -36,6 +94,6 @@ macro_rules! components {
 
 #[rustfmt::skip::macros(components)]
 components![
-    ("source:artist_top_tracks", ArtistTopTracks, ArtistTopTracksArgs),
-    ("source:album", Album, AlbumArgs)
+    ("source:artist_top_tracks", ArtistTopTracks),
+    ("source:album", Album)
 ];

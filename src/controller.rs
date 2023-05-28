@@ -7,7 +7,10 @@ use std::{
 };
 use uuid::Uuid;
 
-use crate::{components::TrackList, error::Result};
+use crate::{
+    components::{Component, NonExhaustive, TrackList},
+    error::Result,
+};
 
 //
 
@@ -34,15 +37,9 @@ pub type Schedule = Vec<Batch>;
 
 pub type Edge = (uuid::Uuid, uuid::Uuid);
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Node {
-    pub component: String,
-    pub parameters: Option<serde_json::Value>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserDefinedFlow {
-    pub nodes: HashMap<uuid::Uuid, Node>,
+    pub nodes: HashMap<uuid::Uuid, NonExhaustive<Component>>,
     pub edges: Vec<Edge>,
 }
 
@@ -180,7 +177,7 @@ impl UserDefinedFlow {
                 let h = s.spawn(move || {
                     // Do some work 1..2..3..
                     thread::sleep(std::time::Duration::from_millis(500));
-                    println!("{}", node.component);
+                    println!("{}", node.clone().unwrap().name());
 
                     // Push results to the cache
                     result_cache.write().unwrap().insert(*node_id, Vec::new());
@@ -207,7 +204,7 @@ mod tests {
     use std::{collections::HashSet, str::FromStr};
     use uuid::Uuid;
 
-    const TEST_YAML: &str = "
+    const TEST_YAML: &str = r#"
 ---
 nodes:
     f0cb5d21-abad-4d11-9dbf-12855a01c463: 
@@ -242,11 +239,13 @@ edges:
     - [b38547f9-22cc-47ab-94bb-da695ee3ac4b, 377033c8-c36c-4f04-a716-5e1736f4dfdc]
     - [377033c8-c36c-4f04-a716-5e1736f4dfdc, 5d83eaac-546e-41f8-b584-9558c037a90c]
     - [5d83eaac-546e-41f8-b584-9558c037a90c, f0cb5d21-abad-4d11-9dbf-12855a01c463]
-";
+"#;
 
     #[test]
     fn can_parse_user_defined_flow() {
-        let _: UserDefinedFlow = serde_yaml::from_str(&TEST_YAML).unwrap();
+        let flow: UserDefinedFlow = serde_yaml::from_str(&TEST_YAML).unwrap();
+
+        println!("{:#?}", flow.nodes);
     }
 
     #[test]
