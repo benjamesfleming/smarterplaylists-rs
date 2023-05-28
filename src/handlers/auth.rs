@@ -8,7 +8,7 @@ use serde::Deserialize;
 pub async fn auth_me_handler(
     session: Session,
     app: web::Data<ApplicationState>,
-) -> Result<impl Responder, PublicError> {
+) -> Result<impl Responder> {
     let user_id = macros::user_id!(session);
     let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE spotify_id = ?")
         .bind(user_id)
@@ -39,7 +39,7 @@ pub async fn auth_sso_callback_handler(
     session: Session,
     app: web::Data<ApplicationState>,
     params: web::Query<AuthProviderCallbackParams>,
-) -> Result<impl Responder, PublicError> {
+) -> Result<impl Responder> {
     let token = crate::spotify::auth::request_token(&params.code)?;
     let token_json = serde_json::to_string(&token)
         .map_err(|err| format!("Failed to serialize token to JSON: {}", err))?;

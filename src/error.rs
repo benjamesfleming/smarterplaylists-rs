@@ -5,6 +5,10 @@ use actix_web::{
 };
 use derive_more::{Display, Error};
 
+pub type Result<T> = std::result::Result<T, PublicError>;
+
+//
+
 #[derive(Debug, Display, Error)]
 pub enum PublicError {
     #[display(fmt = "An internal error occurred. Please try again later.")]

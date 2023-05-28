@@ -43,12 +43,13 @@ pub fn init(token: Option<Token>) -> rspotify::AuthCodeSpotify {
 
 pub mod auth {
 
+    use crate::error::Result;
     use rspotify::prelude::*;
     use rspotify::Token;
 
     // Request the access/refresh token using the given auth code.
     // The return tokens should be persisted in the database
-    pub fn request_token(code: &str) -> Result<Token, String> {
+    pub fn request_token(code: &str) -> Result<Token> {
         let spotify = crate::spotify::init(None); // Init an unauthentication spotify client
 
         // Request the access/refresh tokens.
@@ -62,11 +63,11 @@ pub mod auth {
 
                 // Error - failed to get token??? shouldn't happen
                 } else {
-                    Err("Failed to acquire token lock".to_owned())
+                    Err("Failed to acquire token lock".into())
                 }
             }
             // Error - failed request
-            Err(err) => Err(format!("Failed to request token: {}", err)),
+            Err(err) => Err(format!("Failed to request token: {}", err).into()),
         }
     }
 

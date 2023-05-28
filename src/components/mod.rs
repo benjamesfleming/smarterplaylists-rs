@@ -10,16 +10,11 @@ pub mod sources;
 use rspotify::AuthCodeSpotify as Client;
 use serde::Deserialize;
 
-use crate::error::PublicError;
-
 use self::sources::*;
+use crate::error::Result;
 
 pub trait Component<T> {
-    fn execute(
-        client: &Client,
-        args: T,
-        prev: Vec<TrackList>,
-    ) -> Result<TrackList, rspotify::ClientError>;
+    fn execute(client: &Client, args: T, prev: Vec<TrackList>) -> Result<TrackList>;
 }
 
 // --
@@ -28,7 +23,7 @@ macro_rules! components {
     ( $(($a:literal, $b:ty, $c:ty)),* ) => {
         // Execute a component by name -
         // n.b This function takes a generic args value and will fail if it can't be deserilized into the correct type
-        pub fn execute(id: &str, client: &Client, args: serde_json::Value, prev: Vec<TrackList>) -> Result<TrackList, PublicError> {
+        pub fn execute(id: &str, client: &Client, args: serde_json::Value, prev: Vec<TrackList>) -> Result<TrackList> {
             match id {
                 $(
                     $a => <$b>::execute(client, <$c as Deserialize>::deserialize(args)?, prev).map_err(|_| "".into()),

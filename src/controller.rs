@@ -7,7 +7,7 @@ use std::{
 };
 use uuid::Uuid;
 
-use crate::{components::TrackList, error::PublicError};
+use crate::{components::TrackList, error::Result};
 
 //
 
@@ -47,11 +47,11 @@ pub struct UserDefinedFlow {
 }
 
 impl UserDefinedFlow {
-    fn detect_cycles(&self) -> Result<(), ()> {
+    fn detect_cycles(&self) -> Result<()> {
         todo!()
     }
 
-    fn build_schedule(&self) -> Result<Schedule, PublicError> {
+    fn build_schedule(&self) -> Result<Schedule> {
         let mut constraints = Vec::<Constraint<&Uuid>>::new();
         let mut domains = HashMap::<&Uuid, Vec<usize>>::new();
 
@@ -160,7 +160,7 @@ impl UserDefinedFlow {
 
     // --
 
-    pub fn execute(&self) -> Result<(), PublicError> {
+    pub fn execute(&self) -> Result<()> {
         let cache = Cache::new(RwLock::new(HashMap::new()));
         for batch in self.build_schedule()?.iter() {
             self.execute_batch(batch, &cache)?;
@@ -168,7 +168,7 @@ impl UserDefinedFlow {
         Ok(())
     }
 
-    pub fn execute_batch(&self, batch: &Batch, cache: &Cache) -> Result<(), PublicError> {
+    pub fn execute_batch(&self, batch: &Batch, cache: &Cache) -> Result<()> {
         thread::scope(|s| {
             let mut handles = Vec::new();
 
@@ -251,8 +251,8 @@ edges:
 
     #[test]
     fn can_build_valid_schedule() {
-        let mut flow: UserDefinedFlow = serde_yaml::from_str(&TEST_YAML).unwrap();
-        let mut schedule = flow.build_schedule().unwrap();
+        let flow: UserDefinedFlow = serde_yaml::from_str(&TEST_YAML).unwrap();
+        let schedule = flow.build_schedule().unwrap();
 
         assert_batches(
             schedule,
@@ -268,7 +268,7 @@ edges:
 
     //
 
-    pub fn assert_batches(schedule: Schedule, expected: &[&str]) {
+    fn assert_batches(schedule: Schedule, expected: &[&str]) {
         for (i, batch) in schedule.iter().enumerate() {
             let expected_nodes: HashSet<Uuid> = expected[i]
                 .split(',')
