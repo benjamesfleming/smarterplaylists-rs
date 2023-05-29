@@ -95,5 +95,6 @@ macro_rules! components {
 #[rustfmt::skip::macros(components)]
 components![
     ("source:artist_top_tracks", ArtistTopTracks),
-    ("source:album", Album)
+    ("source:album", Album),
+    ("source:user_liked_tracks", UserLikedTracks)
 ];

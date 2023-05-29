@@ -216,9 +216,9 @@ nodes:
         component: combiner:zip
 
     da0e029b-7a25-424e-b031-fc1271e38069: 
-        component: source:user_liked_songs
+        component: source:user_liked_tracks
         parameters:
-            id: spotify:user:test
+            limit: 75
 
     b38547f9-22cc-47ab-94bb-da695ee3ac4b: 
         component: source:artist_top_tracks
@@ -228,7 +228,7 @@ nodes:
     587d87da-0b5b-4b89-a41b-63414b93235c: 
         component: filter:most_recent
         parameters:
-            count: 20
+            limit: 20
 
     5d83eaac-546e-41f8-b584-9558c037a90c: 
         component: filter:track_deduplication
