@@ -226,9 +226,10 @@ nodes:
             id: spotify:artist:6qqNVTkY8uBg9cP3Jd7DAH
 
     587d87da-0b5b-4b89-a41b-63414b93235c: 
-        component: filter:most_recent
+        component: filter:take
         parameters:
-            limit: 20
+            limit: 25
+            from: start
 
     5d83eaac-546e-41f8-b584-9558c037a90c: 
         component: filter:track_deduplication

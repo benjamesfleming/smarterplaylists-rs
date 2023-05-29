@@ -9,6 +9,7 @@ pub mod sources;
 use rspotify::AuthCodeSpotify as Client;
 use serde::{Deserialize, Serialize};
 
+use self::filters::*;
 use self::sources::*;
 use crate::error::Result;
 
@@ -94,7 +95,11 @@ macro_rules! components {
 
 #[rustfmt::skip::macros(components)]
 components![
+    // Sources
     ("source:artist_top_tracks", ArtistTopTracks),
     ("source:album", Album),
-    ("source:user_liked_tracks", UserLikedTracks)
+    ("source:user_liked_tracks", UserLikedTracks),
+
+    // Filters
+    ("filter:take", Take)
 ];
