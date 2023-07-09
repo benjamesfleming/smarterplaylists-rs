@@ -20,6 +20,7 @@ use actix_web::{
 use cache::RedisPool;
 use dotenv::dotenv;
 use sqlx::sqlite::SqlitePool;
+use std::env;
 
 pub struct ApplicationState {
     db: SqlitePool,
@@ -44,7 +45,14 @@ async fn main() -> std::io::Result<()> {
     sqlx::migrate!("./migrations").run(&db_pool).await.unwrap();
 
     // Redis Cache Pool
-    let cache_pool = cache::connect().await.unwrap();
+    let cache_pool = cache::connect(
+        &env::var("SPL_REDIS_HOST").expect("$SPL_REDIS_HOST is not set"),
+        &env::var("SPL_REDIS_PORT").expect("$SPL_REDIS_PORT is not set"),
+        &env::var("SPL_REDIS_USERNAME").expect("$SPL_REDIS_USERNAME is not set"),
+        &env::var("SPL_REDIS_PASSWORD").expect("$SPL_REDIS_PASSWORD is not set"),
+    )
+    .await
+    .unwrap();
 
     // Application Session Management
     // TODO: Pull session key from environment variable

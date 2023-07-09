@@ -12,8 +12,6 @@ use crate::error::PublicError;
 pub type RedisPool = Pool<RedisConnectionManager>;
 pub type RedisCon = Connection<RedisConnectionManager>;
 
-const REDIS_CON_STRING: &str = "redis://127.0.0.1:6379/";
-
 const CACHE_POOL_MAX_OPEN: u64 = 16;
 const CACHE_POOL_MAX_IDLE: u64 = 8;
 const CACHE_POOL_TIMEOUT_SECONDS: u64 = 1;
@@ -29,8 +27,18 @@ pub enum Error {
     RedisClientError(mobc_redis::redis::RedisError),
 }
 
-pub async fn connect() -> Result<RedisPool, Error> {
-    let client = redis::Client::open(REDIS_CON_STRING).map_err(Error::RedisClientError)?;
+pub async fn connect(
+    host: &str,
+    port: &str,
+    username: &str,
+    password: &str,
+) -> Result<RedisPool, Error> {
+    let mut dsn = format!("redis://{host}:{port}/");
+    if username != "" {
+        dsn = format!("redis://{username}:{password}@{host}:{port}/");
+    }
+
+    let client = redis::Client::open(dsn).map_err(Error::RedisClientError)?;
 
     let manager = RedisConnectionManager::new(client);
 
