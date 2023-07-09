@@ -3,6 +3,7 @@ use actix_session::Session;
 use actix_web::{get, web, HttpResponse, Responder};
 use rspotify::prelude::*;
 use serde::Deserialize;
+use ulid::Ulid;
 
 #[get("/auth/me")]
 pub async fn auth_me_handler(
@@ -10,7 +11,7 @@ pub async fn auth_me_handler(
     app: web::Data<ApplicationState>,
 ) -> Result<impl Responder> {
     let user_id = macros::user_id!(session);
-    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE spotify_id = ?")
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ?")
         .bind(user_id)
         .fetch_one(&app.db)
         .await?;
@@ -54,21 +55,26 @@ pub async fn auth_sso_callback_handler(
         .fetch_optional(&app.db)
         .await?;
 
+    let id;
+
     match query {
         // We do know this user, just replace the access token
         Some(user) => {
-            sqlx::query("UPDATE users SET spotify_access_token = ? WHERE spotify_id = ?")
+            id = user.id.to_owned();
+            sqlx::query("UPDATE users SET spotify_access_token = ? WHERE id = ?")
                 .bind(&token_json)
-                .bind(&user.spotify_id)
+                .bind(&user.id)
                 .execute(&app.db)
                 .await?;
         }
 
         // We don't know this user
         None => {
+            id = Ulid::new().to_string();
             sqlx::query(
-                "INSERT INTO users (spotify_id, spotify_username, spotify_email, spotify_access_token) VALUES (?, ?, ?, ?)"
+                "INSERT INTO users (id, spotify_id, spotify_username, spotify_email, spotify_access_token) VALUES (?, ?, ?, ?, ?)"
             )
+                .bind(&id)
                 .bind(&spotify_user.id.to_string())
                 .bind(&spotify_user.display_name)
                 .bind(&spotify_user.email)
@@ -79,7 +85,7 @@ pub async fn auth_sso_callback_handler(
     };
 
     // Save the user id into the session cookie
-    session.insert("user_id", spotify_user.id.to_string())?;
+    session.insert("user_id", id)?;
 
     // Redirect the user to the home page
     Ok(HttpResponse::TemporaryRedirect()

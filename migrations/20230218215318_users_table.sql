@@ -1,6 +1,7 @@
 -- Add migration script here
 CREATE TABLE users (
-    spotify_id            VARCHAR(255) PRIMARY KEY NOT NULL,
+    id                    CHAR(26) PRIMARY KEY NOT NULL, -- ULID
+    spotify_id            VARCHAR(255) NOT NULL,
     spotify_username      VARCHAR(255) NOT NULL,
     spotify_email         VARCHAR(255) NOT NULL,
     spotify_access_token  TEXT
