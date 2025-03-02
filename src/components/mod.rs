@@ -96,6 +96,7 @@ use self::sources::ArtistTopTracks;
 use self::sources::Album;
 use self::sources::UserLikedTracks;
 use self::filters::Take;
+use self::filters::DeduplicateArtist;
 
 #[rustfmt::skip::macros(components)]
 components![
@@ -105,5 +106,6 @@ components![
     ("source:user_liked_tracks", UserLikedTracks),
 
     // Filters
-    ("filter:take", Take)
+    ("filter:take", Take),
+    ("filter:dedup_artist", DeduplicateArtist)
 ];
