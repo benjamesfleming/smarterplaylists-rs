@@ -92,12 +92,12 @@ macro_rules! components {
 }
 
 // Import component types
-use self::sources::ArtistTopTracks;
-use self::sources::Album;
-use self::sources::UserLikedTracks;
-use self::filters::Take;
 use self::filters::DeduplicateArtist;
 use self::filters::DeduplicateTrack;
+use self::filters::Take;
+use self::sources::Album;
+use self::sources::ArtistTopTracks;
+use self::sources::UserLikedTracks;
 
 #[rustfmt::skip::macros(components)]
 components![

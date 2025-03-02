@@ -1,4 +1,4 @@
-///! The Controller takes the flow definetion as JSON, parses it, and runs the flow
+//! The Controller takes the flow definetion as JSON, parses it, and runs the flow
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -62,7 +62,7 @@ impl UserDefinedFlow {
     /// - Batch 1: [A, D] (nodes with no dependencies)
     /// - Batch 2: [B, E] (nodes that depend only on Batch 1)
     /// - Batch 3: [C]    (nodes that depend on Batch 2)
-    /// 
+    ///
     /// Note: E is in Batch 2 because it only depends on D from Batch 1.
     /// It doesn't have to wait for B to complete.
     ///
@@ -95,11 +95,11 @@ impl UserDefinedFlow {
             // Increment in-degree of destination node
             *in_degree.entry(dst).or_default() += 1;
         }
-        
+
         // The schedule will be a list of batches
         // Each batch is a group of nodes that can be executed in parallel
         let mut schedule: Schedule = Vec::new();
-        
+
         // First batch: nodes with no dependencies (in-degree = 0)
         let mut current_batch: Batch = Vec::new();
         for (&node_id, &degree) in &in_degree {
@@ -107,28 +107,28 @@ impl UserDefinedFlow {
                 current_batch.push(node_id);
             }
         }
-        
+
         // If no nodes have in-degree 0, there's a cycle in the graph
         // A valid DAG must have at least one node with no incoming edges
         if current_batch.is_empty() && !self.nodes.is_empty() {
             // Using a specific error message that includes the word "cycle" for tests to verify
             return Err("Cycle detected in the flow graph".into());
         }
-        
+
         // Add first batch to schedule
         if !current_batch.is_empty() {
             schedule.push(current_batch.clone());
         }
-        
+
         // Process nodes level by level
         // After each level is processed, find nodes that can run next
         let mut processed_nodes = current_batch.clone();
-        
+
         while !processed_nodes.is_empty() {
             // Find nodes that become ready after processing current batch
             let mut next_batch: Batch = Vec::new();
             let mut updated_in_degree = in_degree.clone();
-            
+
             // For each node we just processed
             for &node_id in &processed_nodes {
                 // For each of its neighbors (nodes it points to)
@@ -137,7 +137,7 @@ impl UserDefinedFlow {
                         // Decrease neighbor's in-degree because we processed one of its dependencies
                         if let Some(degree) = updated_in_degree.get_mut(&neighbor) {
                             *degree -= 1;
-                            // If in-degree becomes 0, all dependencies are satisfied 
+                            // If in-degree becomes 0, all dependencies are satisfied
                             // and the node can be added to the next batch
                             if *degree == 0 {
                                 next_batch.push(neighbor);
@@ -146,19 +146,19 @@ impl UserDefinedFlow {
                     }
                 }
             }
-            
+
             // Update in-degree for next iteration
             in_degree = updated_in_degree;
-            
+
             // Add next batch to schedule if not empty
             if !next_batch.is_empty() {
                 schedule.push(next_batch.clone());
             }
-            
+
             // Set up for next iteration
             processed_nodes = next_batch;
         }
-        
+
         // Verify that all nodes are scheduled
         // If not all nodes are scheduled, there must be a cycle
         let scheduled_nodes: std::collections::HashSet<Uuid> = schedule
@@ -166,11 +166,11 @@ impl UserDefinedFlow {
             .flat_map(|batch| batch.iter())
             .cloned()
             .collect();
-            
+
         if scheduled_nodes.len() != self.nodes.len() {
             return Err("Unable to schedule all nodes - possible cycle detected".into());
         }
-        
+
         Ok(schedule)
     }
 
@@ -293,7 +293,10 @@ edges:
             edges: Vec::new(),
         };
         let schedule = flow.build_schedule().unwrap();
-        assert!(schedule.is_empty(), "Schedule for empty flow should be empty");
+        assert!(
+            schedule.is_empty(),
+            "Schedule for empty flow should be empty"
+        );
     }
 
     // Edge case 2: Single node (no edges)
@@ -303,16 +306,23 @@ edges:
         let node_id = Uuid::new_v4();
         // The actual component doesn't matter for the test, just using a placeholder
         nodes.insert(node_id, serde_json::from_str("null").unwrap());
-        
+
         let flow = UserDefinedFlow {
             nodes,
             edges: Vec::new(),
         };
-        
+
         let schedule = flow.build_schedule().unwrap();
         assert_eq!(schedule.len(), 1, "Schedule should have exactly one batch");
-        assert_eq!(schedule[0].len(), 1, "First batch should have exactly one node");
-        assert_eq!(schedule[0][0], node_id, "The node in the batch should match our node");
+        assert_eq!(
+            schedule[0].len(),
+            1,
+            "First batch should have exactly one node"
+        );
+        assert_eq!(
+            schedule[0][0], node_id,
+            "The node in the batch should match our node"
+        );
     }
 
     // Edge case 3: Linear chain (A → B → C → D)
@@ -320,25 +330,25 @@ edges:
     fn test_linear_chain() {
         let mut nodes = HashMap::new();
         let ids: Vec<Uuid> = (0..4).map(|_| Uuid::new_v4()).collect();
-        
+
         for id in &ids {
             nodes.insert(*id, serde_json::from_str("null").unwrap());
         }
-        
+
         // Create linear chain of edges
-        let edges = vec![
-            (ids[0], ids[1]),
-            (ids[1], ids[2]),
-            (ids[2], ids[3]),
-        ];
-        
+        let edges = vec![(ids[0], ids[1]), (ids[1], ids[2]), (ids[2], ids[3])];
+
         let flow = UserDefinedFlow { nodes, edges };
         let schedule = flow.build_schedule().unwrap();
-        
+
         // A linear chain should produce one node per batch in the correct order
         assert_eq!(schedule.len(), 4, "Linear chain should have 4 batches");
         for i in 0..4 {
-            assert_eq!(schedule[i].len(), 1, "Each batch should contain exactly one node");
+            assert_eq!(
+                schedule[i].len(),
+                1,
+                "Each batch should contain exactly one node"
+            );
             assert_eq!(schedule[i][0], ids[i], "Nodes should be scheduled in order");
         }
     }
@@ -351,34 +361,54 @@ edges:
         let b = Uuid::new_v4();
         let c = Uuid::new_v4();
         let d = Uuid::new_v4();
-        
+
         for id in [a, b, c, d] {
             nodes.insert(id, serde_json::from_str("null").unwrap());
         }
-        
+
         let edges = vec![
-            (a, b), (a, c),  // A points to B and C
-            (b, d), (c, d),  // B and C both point to D
+            (a, b),
+            (a, c), // A points to B and C
+            (b, d),
+            (c, d), // B and C both point to D
         ];
-        
+
         let flow = UserDefinedFlow { nodes, edges };
         let schedule = flow.build_schedule().unwrap();
-        
+
         // The diamond pattern should produce 3 batches: [A], [B, C], [D]
         assert_eq!(schedule.len(), 3, "Diamond pattern should have 3 batches");
-        
+
         // First batch should only contain A
-        assert_eq!(schedule[0].len(), 1, "First batch should contain exactly one node");
+        assert_eq!(
+            schedule[0].len(),
+            1,
+            "First batch should contain exactly one node"
+        );
         assert_eq!(schedule[0][0], a, "First batch should contain node A");
-        
+
         // Second batch should contain B and C (in any order)
-        assert_eq!(schedule[1].len(), 2, "Second batch should contain exactly two nodes");
+        assert_eq!(
+            schedule[1].len(),
+            2,
+            "Second batch should contain exactly two nodes"
+        );
         let second_batch_set: HashSet<Uuid> = HashSet::from_iter(schedule[1].iter().cloned());
-        assert!(second_batch_set.contains(&b), "Second batch should contain node B");
-        assert!(second_batch_set.contains(&c), "Second batch should contain node C");
-        
+        assert!(
+            second_batch_set.contains(&b),
+            "Second batch should contain node B"
+        );
+        assert!(
+            second_batch_set.contains(&c),
+            "Second batch should contain node C"
+        );
+
         // Third batch should only contain D
-        assert_eq!(schedule[2].len(), 1, "Third batch should contain exactly one node");
+        assert_eq!(
+            schedule[2].len(),
+            1,
+            "Third batch should contain exactly one node"
+        );
         assert_eq!(schedule[2][0], d, "Third batch should contain node D");
     }
 
@@ -389,23 +419,23 @@ edges:
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
         let c = Uuid::new_v4();
-        
+
         for id in [a, b, c] {
             nodes.insert(id, serde_json::from_str("null").unwrap());
         }
-        
+
         // Create a cycle: A → B → C → A
         let edges = vec![
             (a, b),
             (b, c),
-            (c, a),  // This creates a cycle
+            (c, a), // This creates a cycle
         ];
-        
+
         let flow = UserDefinedFlow { nodes, edges };
         let result = flow.build_schedule();
-        
+
         assert!(result.is_err(), "Flow with cycle should return an error");
-        
+
         // The error is wrapped in a PublicError which standardizes messages for security
         // Just check that an error was returned - we know what triggered it
         assert!(result.is_err(), "Flow with cycle should return an error");
@@ -420,33 +450,49 @@ edges:
         let c = Uuid::new_v4();
         let d = Uuid::new_v4();
         let e = Uuid::new_v4();
-        
+
         for id in [a, b, c, d, e] {
             nodes.insert(id, serde_json::from_str("null").unwrap());
         }
-        
+
         // Create two disconnected subgraphs: A → B and C → D → E
         let edges = vec![
-            (a, b),     // First component
-            (c, d),     // Second component
-            (d, e),     // Second component
+            (a, b), // First component
+            (c, d), // Second component
+            (d, e), // Second component
         ];
-        
+
         let flow = UserDefinedFlow { nodes, edges };
         let schedule = flow.build_schedule().unwrap();
-        
+
         // The first batch should contain nodes with no dependencies (A and C)
         assert_eq!(schedule[0].len(), 2, "First batch should contain two nodes");
         let first_batch_set: HashSet<Uuid> = HashSet::from_iter(schedule[0].iter().cloned());
-        assert!(first_batch_set.contains(&a), "First batch should contain node A");
-        assert!(first_batch_set.contains(&c), "First batch should contain node C");
-        
+        assert!(
+            first_batch_set.contains(&a),
+            "First batch should contain node A"
+        );
+        assert!(
+            first_batch_set.contains(&c),
+            "First batch should contain node C"
+        );
+
         // The second batch should contain B and D
-        assert_eq!(schedule[1].len(), 2, "Second batch should contain two nodes");
+        assert_eq!(
+            schedule[1].len(),
+            2,
+            "Second batch should contain two nodes"
+        );
         let second_batch_set: HashSet<Uuid> = HashSet::from_iter(schedule[1].iter().cloned());
-        assert!(second_batch_set.contains(&b), "Second batch should contain node B");
-        assert!(second_batch_set.contains(&d), "Second batch should contain node D");
-        
+        assert!(
+            second_batch_set.contains(&b),
+            "Second batch should contain node B"
+        );
+        assert!(
+            second_batch_set.contains(&d),
+            "Second batch should contain node D"
+        );
+
         // The third batch should only contain E
         assert_eq!(schedule[2].len(), 1, "Third batch should contain one node");
         assert_eq!(schedule[2][0], e, "Third batch should contain node E");
@@ -460,33 +506,46 @@ edges:
         let b = Uuid::new_v4();
         let c = Uuid::new_v4();
         let d = Uuid::new_v4();
-        
+
         for id in [a, b, c, d] {
             nodes.insert(id, serde_json::from_str("null").unwrap());
         }
-        
+
         // A → B, A → C, A → D (A points to three sinks)
-        let edges = vec![
-            (a, b),
-            (a, c),
-            (a, d),
-        ];
-        
+        let edges = vec![(a, b), (a, c), (a, d)];
+
         let flow = UserDefinedFlow { nodes, edges };
         let schedule = flow.build_schedule().unwrap();
-        
+
         assert_eq!(schedule.len(), 2, "Should have exactly 2 batches");
-        
+
         // First batch should only contain A
-        assert_eq!(schedule[0].len(), 1, "First batch should contain only node A");
+        assert_eq!(
+            schedule[0].len(),
+            1,
+            "First batch should contain only node A"
+        );
         assert_eq!(schedule[0][0], a, "First batch should contain node A");
-        
+
         // Second batch should contain B, C, and D (all sinks)
-        assert_eq!(schedule[1].len(), 3, "Second batch should contain three nodes");
+        assert_eq!(
+            schedule[1].len(),
+            3,
+            "Second batch should contain three nodes"
+        );
         let second_batch_set: HashSet<Uuid> = HashSet::from_iter(schedule[1].iter().cloned());
-        assert!(second_batch_set.contains(&b), "Second batch should contain node B");
-        assert!(second_batch_set.contains(&c), "Second batch should contain node C");
-        assert!(second_batch_set.contains(&d), "Second batch should contain node D");
+        assert!(
+            second_batch_set.contains(&b),
+            "Second batch should contain node B"
+        );
+        assert!(
+            second_batch_set.contains(&c),
+            "Second batch should contain node C"
+        );
+        assert!(
+            second_batch_set.contains(&d),
+            "Second batch should contain node D"
+        );
     }
 
     //
