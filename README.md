@@ -35,6 +35,19 @@ cargo install --locked --path .
 
 This will install the `smarterplaylists-rs` binary to `$HOME/.cargo/bin`.
 
+## Development
+
+### Git Hooks
+
+This repository uses Git hooks to ensure code quality. The hooks are stored in the `.githooks` directory and are set up with:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Available hooks:
+- `pre-commit`: Runs `cargo test` before allowing a commit to proceed
+
 ## License
 
 MIT License

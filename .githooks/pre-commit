@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo "[PRE] Performing tests..."
+cargo test
+
+if [ $? -ne 0 ]; then
+    echo "[PRE] ❌ Tests failed. Commit aborted."
+    exit 1
+fi
+
+exit 0
