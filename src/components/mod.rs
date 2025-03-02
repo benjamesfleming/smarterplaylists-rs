@@ -9,8 +9,6 @@ pub mod sources;
 use rspotify::AuthCodeSpotify as Client;
 use serde::{Deserialize, Serialize};
 
-use self::filters::*;
-use self::sources::*;
 use crate::error::Result;
 
 /// NonExhaustive is a helper enum to allow us to Deserialze unknown components.
@@ -92,6 +90,12 @@ macro_rules! components {
         }
     };
 }
+
+// Import component types
+use self::sources::ArtistTopTracks;
+use self::sources::Album;
+use self::sources::UserLikedTracks;
+use self::filters::Take;
 
 #[rustfmt::skip::macros(components)]
 components![
