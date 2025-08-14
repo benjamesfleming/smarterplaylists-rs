@@ -1,4 +1,4 @@
-use crate::{error::*, macros, models::*, ApplicationState};
+use crate::{error::*, models::*, ApplicationState};
 use actix_session::Session;
 use actix_web::{get, web, HttpResponse, Responder};
 use rspotify::prelude::*;
@@ -6,17 +6,8 @@ use serde::Deserialize;
 use ulid::Ulid;
 
 #[get("/auth/me")]
-pub async fn auth_me_handler(
-    session: Session,
-    app: web::Data<ApplicationState>,
-) -> Result<impl Responder> {
-    let user_id = macros::user_id!(session);
-    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ?")
-        .bind(user_id)
-        .fetch_one(&app.db)
-        .await?;
-
-    Ok(HttpResponse::Ok().json(user))
+pub async fn auth_me_handler(user: User) -> impl Responder {
+    web::Json(user)
 }
 
 //

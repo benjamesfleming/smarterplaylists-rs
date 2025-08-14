@@ -4,7 +4,6 @@ mod components;
 mod controller;
 mod error;
 mod handlers;
-mod macros;
 mod models;
 mod routes;
 mod spotify;
