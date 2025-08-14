@@ -1,16 +1,16 @@
 //! Take filter limits the number of tracks from beginning or end
 use rspotify::AuthCodeSpotify as Client;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::components::{Executable, Result, TrackList};
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 pub struct TakeArgs {
     pub limit: u32,
     pub from: String,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct Take;
 
 impl Executable for Take {

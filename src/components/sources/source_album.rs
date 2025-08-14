@@ -2,11 +2,12 @@ use rspotify::model::*;
 use rspotify::prelude::*;
 use rspotify::AuthCodeSpotify as Client;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::components::{Executable, Result, TrackList};
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 pub struct AlbumArgs {
     pub id: String,
 }

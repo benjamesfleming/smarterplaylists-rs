@@ -1,15 +1,15 @@
 //! DeduplicateArtist filter removes tracks with duplicate primary artists, keeping only the first occurrence
-use rspotify::prelude::Id;
+use rspotify::model::*;
 use rspotify::AuthCodeSpotify as Client;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 use crate::components::{Executable, Result, TrackList};
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 pub struct DeduplicateArtistArgs {}
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct DeduplicateArtist;
 
 impl Executable for DeduplicateArtist {

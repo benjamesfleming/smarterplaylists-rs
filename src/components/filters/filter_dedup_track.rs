@@ -1,15 +1,15 @@
 //! DeduplicateTrack filter removes duplicate tracks based on their Spotify track IDs
-use rspotify::prelude::Id;
+use rspotify::model::*;
 use rspotify::AuthCodeSpotify as Client;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 use crate::components::{Executable, Result, TrackList};
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 pub struct DeduplicateTrackArgs {}
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct DeduplicateTrack;
 
 impl Executable for DeduplicateTrack {

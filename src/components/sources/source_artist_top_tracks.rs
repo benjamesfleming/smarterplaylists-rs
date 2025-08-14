@@ -2,16 +2,16 @@ use rspotify::model::*;
 use rspotify::prelude::*;
 use rspotify::AuthCodeSpotify as Client;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::components::{Executable, Result, TrackList};
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 pub struct ArtistTopTracksArgs {
     pub id: String,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ArtistTopTracks;
 
 impl Executable for ArtistTopTracks {

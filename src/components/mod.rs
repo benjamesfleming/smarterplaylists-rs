@@ -7,6 +7,7 @@ pub mod filters;
 pub mod sources;
 
 use rspotify::AuthCodeSpotify as Client;
+use schemars::{schema_for, JsonSchema};
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
@@ -36,7 +37,7 @@ impl<T> NonExhaustive<T> {
 /// Each Executable component should take an arguments object, as well as a list of previous
 /// component outputs, and return a single [`TrackList`].
 pub trait Executable {
-    type Args;
+    type Args: JsonSchema;
 
     fn execute(client: &Client, args: Self::Args, prev: Vec<TrackList>) -> Result<TrackList>;
 }
@@ -44,7 +45,7 @@ pub trait Executable {
 // --
 
 macro_rules! components {
-    ( $(( $a:literal, $b:ident )),* ) => {
+    ( $(( $name:literal, $comment:expr, $x:ident )),* ) => {
         /// The Component enum wraps all components with a tag-based deserializer.
         ///
         /// When being deserialized we look for an adjacent `component` tag, this tag allows
@@ -62,29 +63,37 @@ macro_rules! components {
         ///
         /// let components: Vec<Component> = serde_yaml::from_str(yaml);
         /// ```
-        #[derive(Deserialize, Serialize, Clone, Debug)]
+        #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
         #[serde(tag = "component", content = "parameters")]
+        #[schemars(description = "")]
         pub enum Component {
             $(
                 // Map the component types to enum variants.
                 // E.g. ArtistTopTracks(ArtistTopTracks::Args)
-                #[serde(rename = $a)]
-                $b(<$b as Executable>::Args),
+                #[serde(rename = $name)]
+                #[doc = $comment]
+                $x(<$x as Executable>::Args),
             )*
         }
 
         impl Component {
+
+            /// Generate JSON schema for all components
+            pub fn json_schema() -> schemars::Schema {
+                schema_for!(Component)
+            }
+
             /// Return the name of the component.
             pub fn name(&self) -> &'static str {
                 match self {
-                    $(Component::$b(_) => $a,)*
+                    $(Component::$x(_) => $name,)*
                 }
             }
 
             /// Execute the component with the given arguments and previous component results.
             pub fn execute(self, client: &Client, prev: Vec<TrackList>) -> Result<TrackList> {
                 match self {
-                    $(Component::$b(args) => <$b>::execute(client, args, prev),)*
+                    $(Component::$x(args) => <$x>::execute(client, args, prev),)*
                 }
             }
         }
@@ -102,12 +111,12 @@ use self::sources::UserLikedTracks;
 #[rustfmt::skip::macros(components)]
 components![
     // Sources
-    ("source:artist_top_tracks", ArtistTopTracks),
-    ("source:album", Album),
-    ("source:user_liked_tracks", UserLikedTracks),
+    ("source:artist_top_tracks", "Artist's top tracks", ArtistTopTracks),
+    ("source:album", "Album tracks", Album),
+    ("source:user_liked_tracks", "User liked tracks", UserLikedTracks),
 
     // Filters
-    ("filter:take", Take),
-    ("filter:dedup_artist", DeduplicateArtist),
-    ("filter:dedup_track", DeduplicateTrack)
+    ("filter:take", "Take first N tracks", Take),
+    ("filter:dedup_artist", "Deduplicate tracks by artist", DeduplicateArtist),
+    ("filter:dedup_track", "Deduplicate tracks by ID", DeduplicateTrack)
 ];
