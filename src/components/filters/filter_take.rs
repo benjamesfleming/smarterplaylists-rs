@@ -31,8 +31,8 @@ impl Executable for Take {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeDelta;
     use rspotify::model::{FullTrack, SimplifiedArtist, TrackId};
-    use time::Duration;
 
     // Helper function to create a test track with a given ID
     fn create_test_track(id: &str) -> FullTrack {
@@ -52,7 +52,7 @@ mod tests {
             album: Default::default(),
             available_markets: vec![],
             disc_number: 1,
-            duration: Duration::seconds(180), // 3 minutes
+            duration: TimeDelta::seconds(180), // 3 minutes
             explicit: false,
             external_ids: Default::default(),
             external_urls: Default::default(),

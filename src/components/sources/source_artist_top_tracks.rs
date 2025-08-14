@@ -23,7 +23,7 @@ impl Executable for ArtistTopTracks {
         client
             .artist_top_tracks(
                 ArtistId::from_id_or_uri(&args.id).unwrap(),
-                Market::FromToken,
+                Some(Market::FromToken),
             )
             .map_err(|e| e.into())
     }

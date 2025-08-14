@@ -20,7 +20,10 @@ impl Executable for Album {
     // request the FullTrack object
     fn execute(client: &Client, args: Self::Args, _: Vec<TrackList>) -> Result<TrackList> {
         let mut ids = Vec::new(); // Temp track id vector
-        for t in client.album_track(AlbumId::from_id_or_uri(&args.id).unwrap()) {
+        for t in client.album_track(
+            AlbumId::from_id_or_uri(&args.id).unwrap(),
+            Some(Market::FromToken),
+        ) {
             ids.push(t.unwrap().id.unwrap())
         }
         client.tracks(ids, None).map_err(|e| e.into())

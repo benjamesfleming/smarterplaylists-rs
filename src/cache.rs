@@ -60,11 +60,11 @@ async fn get_con(pool: &RedisPool) -> Result<RedisCon, Error> {
 }
 
 // Get or create a cached value with a given TTL in seconds.
-// n.b. This only excutes the given closure when the value is not value, expired, or reset=true
+// n.b. This only executes the given closure when the value is not value, expired, or reset=true
 pub async fn get_or_create<T, C>(
     pool: &RedisPool,
     key: &str,
-    ttl: usize,
+    ttl: u64,
     reset: bool,
     callback: C,
 ) -> Result<T, PublicError>
@@ -82,7 +82,7 @@ where
         let exists: bool = con.exists(key).await.map_err(Error::RedisCMDError)?;
         if exists == true {
             // Cache key found and not expired - pull value and deserialize
-            // TODO: Do we need better handling for race-conditations here?
+            // TODO: Do we need better handling for race-conditions here?
             let res: String = con.get(key).await.map_err(Error::RedisCMDError)?;
             let data: T = serde_json::from_str(&res).unwrap();
 
@@ -97,7 +97,7 @@ where
     let data: T = callback()?;
     let serialized: String = serde_json::to_string(&data)?;
 
-    con.set_ex(key, serialized, ttl)
+    con.set_ex::<_, _, ()>(key, serialized, ttl)
         .await
         .map_err(Error::RedisCMDError)?;
 

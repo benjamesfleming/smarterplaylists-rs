@@ -14,14 +14,17 @@ env_logger = "0.8"
 futures-util = "0.3.26"
 log = "0.4.17"
 mime_guess = "2"
-rspotify = { version = "0.11", features = [ "client-ureq", "ureq-rustls-tls" ], default-features = false }
+rspotify = { version = "0.15", features = [ "client-ureq", "ureq-rustls-tls" ], default-features = false }
 rust-embed="6.4.2"
-serde = { version = "1.0", features = [ "derive" ] }
+serde = { version = "1.0.219", features = [ "derive" ] }
 serde_json = "1.0"
 serde_yaml = "0.9"
-sqlx = { version = "0.6", features = [ "runtime-actix-native-tls", "sqlite", "json", "migrate" ] }
-mobc = "0.8"
-mobc-redis = "0.8"
-ulid = { version = "1.0.0", features = ["serde"] }
-uuid = { version = "1.3.3", features = ["v4", "serde"] }
+sqlx = { version = "0.8.6", features = [ "runtime-tokio", "sqlite", "json", "migrate" ] }
+mobc = "0.9"
+mobc-redis = "0.9"
+ulid = { version = "1.2.1", features = ["serde"] }
+uuid = { version = "1.18.0", features = ["v4", "serde"] }
 time = "0.1.45"
+chrono = "0.4.41"
+actix-utils = "3.0.1"
+schemars = "1.0.4"

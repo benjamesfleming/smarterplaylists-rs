@@ -53,8 +53,8 @@ impl Executable for DeduplicateTrack {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeDelta;
     use rspotify::model::{ArtistId, FullTrack, SimplifiedArtist, TrackId};
-    use time::Duration;
 
     // Helper function to create a test track with a given ID and artist ID
     fn create_test_track(id: &str, artist_ids: Vec<&str>) -> FullTrack {
@@ -77,7 +77,7 @@ mod tests {
             album: Default::default(),
             available_markets: vec![],
             disc_number: 1,
-            duration: Duration::seconds(180), // 3 minutes
+            duration: TimeDelta::seconds(180), // 3 minutes
             explicit: false,
             external_ids: Default::default(),
             external_urls: Default::default(),
