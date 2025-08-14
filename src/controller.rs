@@ -1,4 +1,4 @@
-//! The Controller takes the flow definetion as JSON, parses it, and runs the flow
+//! The Controller takes the flow definition as JSON, parses it, and runs the flow
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,

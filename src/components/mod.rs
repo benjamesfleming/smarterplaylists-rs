@@ -2,7 +2,7 @@
 pub type TrackList = Vec<rspotify::model::FullTrack>;
 
 pub mod combiners;
-pub mod conditinals;
+pub mod conditionals;
 pub mod filters;
 pub mod sources;
 
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
 
-/// NonExhaustive is a helper enum to allow us to Deserialze unknown components.
+/// NonExhaustive is a helper enum to allow us to Deserialize unknown components.
 /// Required as a workaround due to `#[serde(other)]` not working with tuple variants.
 ///
 /// Ref: <https://github.com/serde-rs/serde/issues/1701#issuecomment-584677088>
@@ -47,7 +47,7 @@ macro_rules! components {
     ( $(( $a:literal, $b:ident )),* ) => {
         /// The Component enum wraps all components with a tag-based deserializer.
         ///
-        /// When being deserialized we look for an adjancent `component` tag, this tag allows
+        /// When being deserialized we look for an adjacent `component` tag, this tag allows
         /// us to map the `parameters` into the correct component `Args`.
         ///
         /// **Example**
@@ -66,7 +66,7 @@ macro_rules! components {
         #[serde(tag = "component", content = "parameters")]
         pub enum Component {
             $(
-                // Map the component types to enum varients.
+                // Map the component types to enum variants.
                 // E.g. ArtistTopTracks(ArtistTopTracks::Args)
                 #[serde(rename = $a)]
                 $b(<$b as Executable>::Args),
